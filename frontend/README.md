@@ -32,3 +32,19 @@ PORT=5000
 SUPABASE_URL=your_project_url
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+### 3. Installation
+```
+bun install
+```
+
+### 4. Running the Engine
+```
+bun run dev
+```
+
+----
+*Built for Ganesha Academy of Martial Arts © 2026*
+
+----
