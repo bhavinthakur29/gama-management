@@ -1,0 +1,10 @@
+ALTER TABLE public.students
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS failed_attempts INT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+
+ALTER TABLE public.branches
+  ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS location TEXT;
