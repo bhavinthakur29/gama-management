@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
-import { query } from '../../db';
-import { isSessionActive } from '../utils/session';
+import { query } from '../../db.js';
+import { isSessionActive } from '../utils/session.js';
 
 const router = Router();
 

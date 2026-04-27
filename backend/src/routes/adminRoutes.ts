@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { query } from '../../db';
-import { supabaseAdmin } from '../config/supabase';
+import { query } from '../../db.js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 const router = Router();
 const IST_NOW_SQL = "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')";

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { query } from '../../db';
+import { query } from '../../db.js';
 
 const router = Router();
 const IST_NOW_SQL = "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')";

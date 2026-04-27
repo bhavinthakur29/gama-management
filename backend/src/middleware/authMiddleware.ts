@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { supabase, supabaseAdmin } from "../config/supabase";
+import { supabase, supabaseAdmin } from "../config/supabase.js";
 
 type UserProfile = {
   branch_id: string;

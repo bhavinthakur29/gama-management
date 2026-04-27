@@ -3,13 +3,13 @@ process.env.TZ = 'Asia/Kolkata';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { query } from '../db';
-import { verifyBranch, verifySuperAdmin } from './middleware/auth';
-import authRoutes from './routes/authRoutes';
-import adminRoutes from './routes/adminRoutes';
-import studentRoutes from './routes/studentRoutes';
-import attendanceRoutes from './routes/attendanceRoutes';
-import feeRoutes from './routes/feeRoutes';
+import { query } from '../db.js';
+import { verifyBranch, verifySuperAdmin } from './middleware/auth.js';
+import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import studentRoutes from './routes/studentRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
+import feeRoutes from './routes/feeRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,7 +23,12 @@ console.log("------------------------------------");
 console.log("DEBUG: DATABASE_URL is", process.env.DATABASE_URL ? "FOUND" : "NOT FOUND");
 console.log("------------------------------------");
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Public/Auth Routes

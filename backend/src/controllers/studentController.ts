@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 
-import pool from "../config/db";
+import pool from "../config/db.js";
 
 type CsvStudentRow = Record<string, unknown>;
 

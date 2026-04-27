@@ -1,10 +1,10 @@
 import { Router, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
-import { query } from '../../db';
-import { supabase, supabaseAdmin } from '../config/supabase';
-import { verifyBranch } from '../middleware/auth';
-import { createStaffSession, getAcademySessionExpiry } from '../utils/session';
+import { query } from '../../db.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { verifyBranch } from '../middleware/auth.js';
+import { createStaffSession, getAcademySessionExpiry } from '../utils/session.js';
 
 const router = Router();
 const IST_NOW_SQL = "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')";
