@@ -23,6 +23,7 @@ type ProfilePinRow = {
   role: string;
   is_active: boolean;
   pin_hash: string | null;
+  pin?: string | null;
   name?: string | null;
   failed_attempts?: number | null;
   locked_until?: string | null;
@@ -180,36 +181,28 @@ router.post('/instructor-login', async (req, res) => {
   try {
     const result = await query(
       `
-        SELECT id, branch_id, role, is_active, pin_hash, name, failed_attempts, locked_until
-        FROM public.profiles
+        SELECT
+          id,
+          branch_id,
+          'Instructor' AS role,
+          is_active,
+          pin,
+          first_name || ' ' || last_name AS name
+        FROM public.instructors
         WHERE branch_id = $1::integer
-          AND role = 'Instructor'
           AND is_active = true
       `,
       [branchId],
     );
 
     const profiles = result.rows as ProfilePinRow[];
-    const activeProfiles = profiles.filter((profile) => (
-      !profile.locked_until || Date.parse(profile.locked_until) <= Date.now()
-    ));
 
-    if (profiles.length > 0 && activeProfiles.length === 0) {
-      return res.status(423).json(errorResponse('All instructor PIN sessions are temporarily locked.'));
-    }
+    for (const profile of profiles) {
+      const storedPin = profile.pin;
+      const isValidPin = storedPin === pin ||
+        Boolean(storedPin?.startsWith('$2') && await bcrypt.compare(pin, storedPin));
 
-    for (const profile of activeProfiles) {
-      if (profile.pin_hash && await bcrypt.compare(pin, profile.pin_hash)) {
-        await query(
-          `
-            UPDATE public.profiles
-            SET failed_attempts = 0,
-                locked_until = NULL
-            WHERE id = $1::uuid
-          `,
-          [profile.id],
-        );
-
+      if (isValidPin) {
         return res.json({
           success: true,
           message: 'Instructor login successful.',
@@ -222,24 +215,6 @@ router.post('/instructor-login', async (req, res) => {
         });
       }
     }
-
-    await query(
-      `
-        UPDATE public.profiles
-        SET
-          failed_attempts = COALESCE(failed_attempts, 0) + 1,
-          locked_until = CASE
-            WHEN COALESCE(failed_attempts, 0) + 1 >= 10
-              THEN ${IST_NOW_SQL} + INTERVAL '15 minutes'
-            ELSE locked_until
-          END
-        WHERE branch_id = $1::integer
-          AND role = 'Instructor'
-          AND is_active = true
-          AND (locked_until IS NULL OR locked_until <= ${IST_NOW_SQL})
-      `,
-      [branchId],
-    );
 
     return res.status(401).json(errorResponse('Invalid instructor PIN.'));
   } catch (error) {

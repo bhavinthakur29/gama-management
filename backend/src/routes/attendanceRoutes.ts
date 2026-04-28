@@ -125,10 +125,10 @@ router.post('/check-in', async (req: AttendanceRequest, res) => {
           AND s.deleted_at IS NULL
           AND EXISTS (
             SELECT 1
-            FROM public.profiles p
-            WHERE p.id = $2::uuid
-              AND p.branch_id = s.branch_id
-              AND p.is_active = true
+            FROM public.instructors i
+            WHERE i.id = $2::uuid
+              AND i.branch_id = s.branch_id
+              AND i.is_active = true
           )
           AND NOT EXISTS (
             SELECT 1
@@ -158,7 +158,7 @@ router.post('/check-in', async (req: AttendanceRequest, res) => {
       const markerResult = await query(
         `
           SELECT id
-          FROM public.profiles
+          FROM public.instructors
           WHERE id = $1::uuid
             AND branch_id = $2::integer
             AND is_active = true
@@ -203,11 +203,11 @@ async function getTodayAttendance(req: AttendanceRequest, res: Response) {
           s.first_name,
           s.last_name,
           s.status,
-          r.rank_name AS belt_rank,
-          r.color AS belt_color
+          r.name AS belt_rank,
+          r.name AS belt_color
         FROM public.attendance a
         INNER JOIN public.students s ON s.id = a.student_id
-        LEFT JOIN public.belt_ranks r ON r.id = s.belt_id
+        LEFT JOIN public.belt_ranks r ON r.id = s.belt_level_id
         WHERE a.branch_id = $1::integer
           AND a.date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date
           AND s.deleted_at IS NULL
