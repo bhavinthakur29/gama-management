@@ -117,16 +117,25 @@ function isConfiguredSuperAdminEmail(email?: string) {
 
 async function getProfile(profileId: string): Promise<Profile | null> {
   const { data, error } = await supabaseAdmin
-    .from("profiles")
-    .select("id, branch_id, role, is_active")
-    .eq("id", profileId)
+    .from("instructors")
+    .select("auth_id, branch_id, is_active")
+    .eq("auth_id", profileId)
     .maybeSingle();
 
   if (error) {
     throw error;
   }
 
-  return data as Profile | null;
+  if (!data) {
+    return null;
+  }
+
+  return {
+    id: data.auth_id,
+    branch_id: String(data.branch_id),
+    role: "instructor",
+    is_active: data.is_active,
+  };
 }
 
 export async function verifyBranch(

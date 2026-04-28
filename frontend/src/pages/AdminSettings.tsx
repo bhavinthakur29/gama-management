@@ -42,14 +42,14 @@ export function AdminSettings() {
   const [beltRanks, setBeltRanks] = useState<BeltRank[]>([]);
   const [staff, setStaff] = useState<ActiveInstructor[]>([]);
   const [loadingBelts, setLoadingBelts] = useState(true);
-  const [loadingStaff, setLoadingStaff] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
   useEffect(() => {
     const loadInitialData = async () => {
       setLoadingBelts(true);
-      setLoadingStaff(true);
+      setIsLoading(true);
 
       try {
         const [belts, instructors] = await Promise.all([
@@ -58,15 +58,16 @@ export function AdminSettings() {
         ]);
 
         setBeltRanks(belts);
-        setStaff(instructors);
+        setStaff(Array.isArray(instructors) ? instructors : []);
       } catch (error) {
+        setStaff([]);
         setNotice({
           type: 'error',
           message: getApiErrorMessage(error, 'Unable to load admin hub data.'),
         });
       } finally {
         setLoadingBelts(false);
-        setLoadingStaff(false);
+        setIsLoading(false);
       }
     };
 
@@ -93,7 +94,8 @@ export function AdminSettings() {
         message: 'Instructor account provisioned successfully.',
       });
       setForm(INITIAL_FORM);
-      setStaff(await getActiveInstructors());
+      const refreshedStaff = await getActiveInstructors();
+      setStaff(Array.isArray(refreshedStaff) ? refreshedStaff : []);
     } catch (error) {
       setNotice({
         type: 'error',
@@ -217,13 +219,13 @@ export function AdminSettings() {
         <h2 className="font-serif text-3xl font-bold text-gray-950">Active Staff</h2>
         <p className="mt-2 text-gray-500">Current active instructors across branches.</p>
 
-        {loadingStaff ? (
+        {isLoading ? (
           <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-gray-500">
             Loading active staff...
           </div>
-        ) : staff.length === 0 ? (
+        ) : (staff?.length ?? 0) === 0 ? (
           <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-gray-500">
-            No active instructors found.
+            No active staff found. Provision your first instructor above.
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto rounded-2xl border border-gray-100">
@@ -236,7 +238,7 @@ export function AdminSettings() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {staff.map((member) => (
+                {staff?.map((member) => (
                   <tr key={member.id}>
                     <td className="px-4 py-3 font-semibold text-gray-800">
                       {[member.first_name, member.last_name].filter(Boolean).join(' ')}

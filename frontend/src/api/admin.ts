@@ -43,9 +43,13 @@ export async function createInstructor(payload: CreateInstructorPayload) {
 
 export async function getActiveInstructors() {
   const token = localStorage.getItem('gama_token');
-  const response = await api.get<{ instructors: ActiveInstructor[] }>('/admin/instructors', {
+  const response = await api.get<ActiveInstructor[] | { instructors?: ActiveInstructor[] }>('/admin/instructors', {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
-  return response.data.instructors;
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  return response.data.instructors ?? [];
 }
