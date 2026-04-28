@@ -203,8 +203,9 @@ async function getTodayAttendance(req: AttendanceRequest, res: Response) {
           s.first_name,
           s.last_name,
           s.status,
-          r.name AS belt_rank,
-          r.name AS belt_color
+          r.rank_name AS belt,
+          r.rank_name AS belt_rank,
+          r.color_code AS belt_color
         FROM public.attendance a
         INNER JOIN public.students s ON s.id = a.student_id
         LEFT JOIN public.belt_ranks r ON r.id = s.belt_level_id

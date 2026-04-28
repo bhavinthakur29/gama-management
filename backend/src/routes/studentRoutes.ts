@@ -76,8 +76,9 @@ router.get('/', async (req, res) => {
         s.status,
         s.metadata,
         b.name as branch_name,
-        r.name as belt_rank,
-        r.name as belt_color
+        r.rank_name as belt,
+        r.rank_name as belt_rank,
+        r.color_code as belt_color
       FROM public.students s
       LEFT JOIN public.branches b ON s.branch_id = b.id
       LEFT JOIN public.belt_ranks r ON s.belt_level_id = r.id
@@ -115,8 +116,9 @@ router.get('/membership/:id', async (req, res) => {
           s.status,
           s.metadata,
           b.name as branch_name,
-          r.name as belt_rank,
-          r.name as belt_color
+          r.rank_name as belt,
+          r.rank_name as belt_rank,
+          r.color_code as belt_color
         FROM public.students s
         LEFT JOIN public.branches b ON s.branch_id = b.id
         LEFT JOIN public.belt_ranks r ON s.belt_level_id = r.id
