@@ -109,24 +109,24 @@ router.post('/check-in', async (req: AttendanceRequest, res) => {
         INSERT INTO public.attendance (
           student_id,
           branch_id,
-          date,                -- Corrected from attendance_date
-          marked_by_profile,   -- Corrected from marked_by
+          date,
+          marked_by_profile,
           status
         )
         SELECT
           s.id,
           s.branch_id,
           (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date,
-          $2::uuid,            -- Explicitly cast to UUID to match your schema
+          $2::uuid,
           'present'
         FROM public.students s
-        WHERE s.id = $1::integer -- Cast to integer if your student IDs are serial/int
+        WHERE s.id = $1::integer
           AND s.branch_id = $3::integer
           AND s.deleted_at IS NULL
           AND EXISTS (
             SELECT 1
             FROM public.instructors i
-            WHERE i.id = $2::uuid
+            WHERE i.auth_id = $2::uuid
               AND i.branch_id = s.branch_id
               AND i.is_active = true
           )
@@ -159,7 +159,7 @@ router.post('/check-in', async (req: AttendanceRequest, res) => {
         `
           SELECT id
           FROM public.instructors
-          WHERE id = $1::uuid
+          WHERE auth_id = $1::uuid
             AND branch_id = $2::integer
             AND is_active = true
           LIMIT 1
@@ -208,7 +208,7 @@ async function getTodayAttendance(req: AttendanceRequest, res: Response) {
           r.color_code AS belt_color
         FROM public.attendance a
         INNER JOIN public.students s ON s.id = a.student_id
-        LEFT JOIN public.belt_ranks r ON r.id = s.belt_level_id
+        LEFT JOIN public.belt_ranks r ON r.id = s.belt_id
         WHERE a.branch_id = $1::integer
           AND a.date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date
           AND s.deleted_at IS NULL

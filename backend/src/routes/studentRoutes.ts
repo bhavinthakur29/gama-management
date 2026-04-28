@@ -81,7 +81,7 @@ router.get('/', async (req, res) => {
         r.color_code as belt_color
       FROM public.students s
       LEFT JOIN public.branches b ON s.branch_id = b.id
-      LEFT JOIN public.belt_ranks r ON s.belt_level_id = r.id
+      LEFT JOIN public.belt_ranks r ON s.belt_id = r.id
       WHERE s.branch_id = $1::integer
         AND s.deleted_at IS NULL
     `, [branchId]);
@@ -121,7 +121,7 @@ router.get('/membership/:id', async (req, res) => {
           r.color_code as belt_color
         FROM public.students s
         LEFT JOIN public.branches b ON s.branch_id = b.id
-        LEFT JOIN public.belt_ranks r ON s.belt_level_id = r.id
+        LEFT JOIN public.belt_ranks r ON s.belt_id = r.id
         WHERE s.membership_id = $1
           AND s.branch_id = $2::integer
           AND s.deleted_at IS NULL
@@ -151,7 +151,7 @@ router.post('/', async (req, res) => {
   const contact = getStringField(req.body, 'contact');
   const status = getStringField(req.body, 'status') ?? 'Active';
   const beltId = getNumericId(
-    getBodyField(req.body, 'belt_level_id') ?? getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_rank_id'),
+    getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_rank_id'),
   );
   const metadata = getObjectField(req.body, 'metadata');
 
@@ -173,7 +173,7 @@ router.post('/', async (req, res) => {
           last_name,
           contact,
           status,
-          belt_level_id,
+          belt_id,
           metadata,
           deleted_at
         )
@@ -203,7 +203,7 @@ router.patch('/:id', async (req, res) => {
   const branchId = getNumericId(req.branch_id);
   const studentId = getNumericId(req.params.id);
   const beltId = getNumericId(
-    getBodyField(req.body, 'belt_level_id') ?? getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_rank_id'),
+    getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_rank_id'),
   );
   const firstName = getStringField(req.body, 'first_name');
   const lastName = getStringField(req.body, 'last_name');
@@ -231,7 +231,7 @@ router.patch('/:id', async (req, res) => {
       `
         UPDATE public.students
         SET
-          belt_level_id = COALESCE($1::integer, belt_level_id),
+          belt_id = COALESCE($1::integer, belt_id),
           first_name = COALESCE($2, first_name),
           last_name = COALESCE($3, last_name),
           contact = COALESCE($4, contact),
@@ -279,7 +279,7 @@ router.put('/:id', async (req, res) => {
   const contact = getStringField(req.body, 'contact');
   const status = getStringField(req.body, 'status');
   const beltId = getNumericId(
-    getBodyField(req.body, 'belt_level_id') ?? getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_rank_id'),
+    getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_id') ?? getBodyField(req.body, 'belt_rank_id'),
   );
   const metadata = getObjectField(req.body, 'metadata');
 
@@ -305,7 +305,7 @@ router.put('/:id', async (req, res) => {
           last_name = $3,
           contact = $4,
           status = $5,
-          belt_level_id = COALESCE($6::integer, belt_level_id),
+          belt_id = COALESCE($6::integer, belt_id),
           metadata = $7::jsonb
         WHERE id = $8::integer
           AND branch_id = $9::integer
