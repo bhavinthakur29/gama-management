@@ -105,6 +105,16 @@ function getSingleHeader(req: Request, headerName: string): string | null {
   return trimmedValue.length > 0 ? trimmedValue : null;
 }
 
+function isConfiguredSuperAdminEmail(email?: string) {
+  const configuredEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
+
+  if (!configuredEmail || !email) {
+    return false;
+  }
+
+  return email.trim().toLowerCase() === configuredEmail;
+}
+
 async function getProfile(profileId: string): Promise<Profile | null> {
   const { data, error } = await supabaseAdmin
     .from("profiles")
@@ -191,13 +201,46 @@ export async function verifySuperAdmin(
   res: Response,
   next: NextFunction,
 ) {
-  await verifyBranch(req, res, () => {
-    if ((req.role ?? req.user?.role) !== "super-admin") {
+  const token = getBearerToken(req);
+
+  if (!token) {
+    return res.status(401).json(errorResponse("Missing bearer token."));
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      return res.status(401).json(errorResponse("Invalid or expired Supabase token."));
+    }
+
+    const authProfile = await getProfile(data.user.id);
+    const requesterEmail = data.user.email;
+    const requesterRole = authProfile?.role;
+
+    if (requesterRole !== "super-admin" && !isConfiguredSuperAdminEmail(requesterEmail)) {
       return res.status(403).json(errorResponse("Super admin access is required."));
     }
 
+    req.auth = {
+      userId: data.user.id,
+      email: requesterEmail,
+    };
+    req.user = {
+      id: data.user.id,
+      email: requesterEmail,
+      branch_id: authProfile?.branch_id ?? "",
+      role: requesterRole ?? "super-admin",
+      ...(authProfile ? { profile: authProfile } : {}),
+    };
+    req.branch_id = authProfile?.branch_id;
+    req.role = requesterRole ?? "super-admin";
+
     return next();
-  });
+  } catch (error) {
+    console.error("Failed to verify super admin", error);
+    return res.status(500).json(errorResponse("Unable to verify super admin access."));
+  }
 }
 
 export async function requireProfile(

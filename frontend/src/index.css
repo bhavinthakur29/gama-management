@@ -1,37 +1,15 @@
-:root {
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+@import "tailwindcss";
 
-  font: 16px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light;
-  color: #111827;
-  background: #f9fafb;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+@theme {
+  /* GAMA Premium Light Theme */
+  --color-background: #F9FAFB;
+  --color-primary: #D97706;
+  --color-surface: #FFFFFF;
 }
 
 body {
-  margin: 0;
-  min-width: 320px;
-  background: #f9fafb;
-}
-
-#root {
-  min-height: 100svh;
-}
-
-p {
-  margin: 0;
-}
-
-button,
-input {
-  font: inherit;
+  background-color: var(--color-background);
+  color: #111827;
+  /* text-gray-900 */
+  -webkit-font-smoothing: antialiased;
 }

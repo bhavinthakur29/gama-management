@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../../db.js';
 import { supabaseAdmin } from '../config/supabase.js';
+import { createInstructorAccount } from '../controllers/adminInstructorController.js';
 
 const router = Router();
 const IST_NOW_SQL = "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')";
@@ -42,6 +43,8 @@ function getNumericId(value: unknown): number | null {
 
   return null;
 }
+
+router.post('/instructors', createInstructorAccount);
 
 router.patch('/update-academy/:id', async (req, res) => {
   const userId = req.params.id;

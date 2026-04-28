@@ -10,6 +10,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import feeRoutes from './routes/feeRoutes.js';
+import beltRoutes from './routes/beltRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,7 +28,14 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'x-instructor-profile-id',
+    'x-instructor-session-expires-at',
+    'x-staff-profile-id',
+    'x-staff-session-expires-at',
+  ]
 }));
 app.use(express.json());
 
@@ -39,6 +47,7 @@ app.use('/api/admin', verifySuperAdmin, adminRoutes);
 app.use('/api/students', verifyBranch, studentRoutes);
 app.use('/api/attendance', verifyBranch, attendanceRoutes);
 app.use('/api/fees', verifyBranch, feeRoutes);
+app.use('/api/belt-ranks', verifyBranch, beltRoutes);
 
 app.get('/health', async (req, res) => {
   try {

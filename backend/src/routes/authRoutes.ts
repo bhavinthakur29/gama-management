@@ -19,6 +19,7 @@ const loginLimiter = rateLimit({
 
 type ProfilePinRow = {
   id: string;
+  auth_id?: string | null;
   branch_id: string;
   role: string;
   is_active: boolean;
@@ -168,14 +169,18 @@ router.post('/login', loginLimiter, async (req, res) => {
 router.post('/instructor-session', verifyBranch, startInstructorSession);
 router.post('/verify-pin', verifyBranch, startInstructorSession);
 
-router.post('/instructor-login', async (req, res) => {
+router.post('/instructor-login', verifyBranch, async (req, res) => {
   const pin = getStringField(req.body, 'pin');
   const branchId = getNumericId(
     (req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>).branch_id : null),
-  );
+  ) ?? getAcademyBranchId(req);
 
-  if (!pin || !branchId) {
-    return res.status(400).json(errorResponse('pin and branch_id are required.'));
+  if (!pin) {
+    return res.status(400).json(errorResponse('pin is required.'));
+  }
+
+  if (!branchId) {
+    return res.status(401).json(errorResponse('Authenticated branch is required.'));
   }
 
   try {
@@ -183,6 +188,7 @@ router.post('/instructor-login', async (req, res) => {
       `
         SELECT
           id,
+          auth_id,
           branch_id,
           'Instructor' AS role,
           is_active,
@@ -207,7 +213,7 @@ router.post('/instructor-login', async (req, res) => {
           success: true,
           message: 'Instructor login successful.',
           staff_session: createStaffSession({
-            id: profile.id,
+            id: profile.auth_id ?? profile.id,
             name: profile.name ?? 'Instructor',
             role: profile.role,
             branch_id: Number(profile.branch_id),

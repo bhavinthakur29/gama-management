@@ -1,258 +1,154 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Edit3, Plus, Trash2 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { api } from '../api/axios';
+import { useEffect, useState } from 'react';
+import { Edit3, Plus } from 'lucide-react';
+import { AxiosError } from 'axios';
+import { createStudent, getBeltRanks, getStudents, updateStudent } from '../api/students';
 import { BeltBadge } from '../components/BeltBadge';
-import { StudentModal, studentBelts, type StudentModalValues } from '../components/StudentModal';
-import { getStudentBelt, getStudentName, type Student } from '../types/student';
+import { StudentModal } from '../components/StudentModal';
+import type { BeltRank, Student, StudentPayload } from '../types';
+import { studentName } from '../types';
 
-const beltFilters = ['All', ...studentBelts];
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof AxiosError) {
+    const data = error.response?.data as { message?: string } | undefined;
+    return data?.message ?? error.message ?? fallback;
+  }
 
-const pageVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.06 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0 },
-};
-
-function getJoinDate(student: Student) {
-  const metadata = student.metadata ?? {};
-  const joinDate = metadata.join_date ?? metadata.joinDate ?? metadata.created_at;
-
-  return typeof joinDate === 'string' && joinDate.trim() ? joinDate : '-';
-}
-
-function splitName(name: string) {
-  const parts = name.trim().split(/\s+/);
-  return {
-    first_name: parts[0] ?? '',
-    last_name: parts.slice(1).join(' '),
-  };
+  return error instanceof Error ? error.message : fallback;
 }
 
 export function Students() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [activeBelt, setActiveBelt] = useState('All');
-  const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
-  const [error, setError] = useState('');
+  const [belts, setBelts] = useState<BeltRank[]>([]);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState('');
 
-  async function loadStudents() {
-    const response = await api.get('/students');
-    setStudents(response.data ?? []);
+  async function loadRoster() {
+    setError('');
+
+    try {
+      const [studentRows, beltRows] = await Promise.all([
+        getStudents(),
+        getBeltRanks(),
+      ]);
+
+      setStudents(studentRows);
+      setBelts(beltRows);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load roster.');
+    }
   }
 
   useEffect(() => {
-    void loadStudents().catch(() => setError('Unable to load students.'));
+    queueMicrotask(() => void loadRoster());
   }, []);
 
-  const filteredStudents = useMemo(() => {
-    if (activeBelt === 'All') {
-      return students;
-    }
-
-    return students.filter((student) => getStudentBelt(student).toLowerCase().includes(activeBelt.toLowerCase()));
-  }, [activeBelt, students]);
-
-  const openAddModal = () => {
-    setSelectedStudent(null);
-    setModalMode('add');
-    setError('');
+  const openNewStudent = () => {
+    setEditingStudent(null);
+    setIsModalOpen(true);
   };
 
-  const openEditModal = (student: Student) => {
-    setSelectedStudent(student);
-    setModalMode('edit');
-    setError('');
+  const openEditStudent = (student: Student) => {
+    setEditingStudent(student);
+    setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    setModalMode(null);
-    setSelectedStudent(null);
-    setError('');
-  };
-
-  const handleSubmit = async (values: StudentModalValues) => {
+  const handleSubmit = async (payload: StudentPayload) => {
     setIsSaving(true);
     setError('');
-    const { first_name, last_name } = splitName(values.name);
-
-    const payload = {
-      first_name,
-      last_name,
-      status: selectedStudent?.status ?? 'Active',
-      metadata: {
-        email: values.email.trim() || null,
-        belt_label: values.belt_rank,
-      },
-    };
 
     try {
-      if (modalMode === 'edit' && selectedStudent) {
-        await api.patch(`/students/${selectedStudent.id}`, payload);
+      if (editingStudent) {
+        await updateStudent(editingStudent.id, payload);
       } else {
-        await api.post('/students', {
-          ...payload,
-          membership_id: `GAMA-${Date.now()}`,
-          metadata: {
-            ...payload.metadata,
-            join_date: new Date().toISOString().slice(0, 10),
-          },
-        });
+        await createStudent(payload);
       }
 
-      await loadStudents();
-      closeModal();
-    } catch (saveError: any) {
-      setError(saveError.response?.data?.message ?? saveError.message ?? 'Unable to save student.');
+      setIsModalOpen(false);
+      setEditingStudent(null);
+      await loadRoster();
+    } catch (saveError: unknown) {
+      setError(getApiErrorMessage(saveError, 'Unable to save student.'));
     } finally {
       setIsSaving(false);
     }
   };
 
-  const confirmSoftDelete = async () => {
-    if (!studentToDelete) return;
-    setIsDeleting(true);
-    setError('');
-    try {
-      await api.delete(`/students/${studentToDelete.id}`);
-      await loadStudents();
-      setStudentToDelete(null);
-    } catch (deleteError: any) {
-      setError(deleteError.response?.data?.message ?? deleteError.message ?? 'Unable to delete student.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   return (
-    <motion.section className="page-stack" variants={pageVariants} initial="hidden" animate="show">
-      <motion.div className="page-header" variants={itemVariants}>
+    <section className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="eyebrow">Roster</p>
-          <h1>Students</h1>
-          <p>Manage academy members, belt levels, and active roster status.</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Roster</p>
+          <h1 className="mt-2 font-serif text-4xl font-bold text-gray-950">Student Management</h1>
+          <p className="mt-2 text-gray-500">Create and maintain student profiles with schema-safe fields.</p>
         </div>
-        <button className="primary-button add-student-button" type="button" onClick={openAddModal}>
+
+        <button
+          type="button"
+          onClick={openNewStudent}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-bold text-white shadow-sm transition hover:bg-amber-700"
+        >
           <Plus size={18} />
-          Add Student
+          New Student
         </button>
-      </motion.div>
+      </div>
 
-      <motion.div className="filter-chips" variants={itemVariants}>
-        {beltFilters.map((belt) => (
-          <button
-            key={belt}
-            className={activeBelt === belt ? 'active' : ''}
-            type="button"
-            onClick={() => setActiveBelt(belt)}
-          >
-            {belt}
-          </button>
-        ))}
-      </motion.div>
+      {error && <div className="rounded-2xl border border-red-100 bg-red-50 p-4 font-semibold text-red-700">{error}</div>}
 
-      {error && <p className="form-error">{error}</p>}
-
-      <motion.article className="card table-card" variants={itemVariants}>
-        <table className="roster-table">
-          <thead>
+      <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+        <table className="w-full min-w-[760px] border-collapse text-left">
+          <thead className="bg-gray-50 text-xs uppercase tracking-[0.12em] text-gray-500">
             <tr>
-              <th>Name</th>
-              <th>Belt</th>
-              <th>Join Date</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th className="px-5 py-4">Name</th>
+              <th className="px-5 py-4">Contact</th>
+              <th className="px-5 py-4">DOB</th>
+              <th className="px-5 py-4">Belt</th>
+              <th className="px-5 py-4">Status</th>
+              <th className="px-5 py-4">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredStudents.map((student) => (
-              <tr key={student.id}>
-                <td>
-                  <strong>{getStudentName(student)}</strong>
-                  <span>{student.membership_id ?? 'No membership ID'}</span>
+            {students.map((student) => (
+              <tr key={student.id} className="border-t border-gray-100">
+                <td className="px-5 py-4">
+                  <strong className="block text-gray-950">{studentName(student)}</strong>
+                  <span className="text-sm text-gray-500">{student.membership_id ?? 'No membership ID'}</span>
                 </td>
-                <td><BeltBadge belt={getStudentBelt(student)} /></td>
-                <td>{getJoinDate(student)}</td>
-                <td>
-                  <span className={student.status === 'Inactive' ? 'status-pill inactive' : 'status-pill'}>
+                <td className="px-5 py-4 text-gray-600">{student.contact ?? '-'}</td>
+                <td className="px-5 py-4 text-gray-600">{student.metadata?.date_of_birth ?? '-'}</td>
+                <td className="px-5 py-4"><BeltBadge student={student} /></td>
+                <td className="px-5 py-4">
+                  <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
                     {student.status ?? 'Active'}
                   </span>
                 </td>
-                <td>
-                  <div className="table-actions">
-                    <button type="button" onClick={() => openEditModal(student)}>
-                      <Edit3 size={16} />
-                      Edit
-                    </button>
-                    <button className="danger" type="button" onClick={() => setStudentToDelete(student)}>
-                      <Trash2 size={16} />
-                      Delete
-                    </button>
-                  </div>
+                <td className="px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => openEditStudent(student)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <Edit3 size={15} />
+                    Edit
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
 
-        {filteredStudents.length === 0 && (
-          <div className="empty-table">
-            <h2>No students in this filter</h2>
-            <p>Add a student or select another belt filter.</p>
-          </div>
-        )}
-      </motion.article>
-
-      <AnimatePresence>
-        {modalMode && (
-          <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <StudentModal
-              mode={modalMode}
-              student={selectedStudent}
-              isSaving={isSaving}
-              onClose={closeModal}
-              onSubmit={(values) => void handleSubmit(values)}
-            />
-          </motion.div>
-        )}
-
-        {studentToDelete && (
-          <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div
-              className="confirm-dialog card"
-              initial={{ y: 20, opacity: 0, scale: 0.98 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: 20, opacity: 0, scale: 0.98 }}
-            >
-              <div className="confirm-icon">
-                <Trash2 size={24} />
-              </div>
-              <h2>Soft delete student?</h2>
-              <p>
-                {getStudentName(studentToDelete)} will be removed from the active roster but can be restored later.
-              </p>
-              <div className="confirm-actions">
-                <button type="button" onClick={() => setStudentToDelete(null)} disabled={isDeleting}>
-                  Cancel
-                </button>
-                <button className="danger-button" type="button" onClick={() => void confirmSoftDelete()} disabled={isDeleting}>
-                  {isDeleting ? 'Deleting...' : 'Soft Delete'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.section>
+      {isModalOpen && (
+        <StudentModal
+          key={editingStudent?.id ?? 'new-student'}
+          belts={belts}
+          student={editingStudent}
+          isSaving={isSaving}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={(payload) => void handleSubmit(payload)}
+        />
+      )}
+    </section>
   );
 }
