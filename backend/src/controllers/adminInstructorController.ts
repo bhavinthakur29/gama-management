@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 
 import { query } from '../../db.js';
-import { supabaseAdmin } from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 
 function errorResponse(message: string) {
   return { error: true, message };
@@ -46,6 +46,44 @@ async function deleteCreatedAuthUser(userId: string) {
 
   if (error) {
     console.error('Failed to roll back Supabase Auth user:', error);
+  }
+}
+
+export async function getActiveInstructors(_req: Request, res: Response) {
+  try {
+    const { data, error } = await supabase
+      .from('instructors')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        branch_id,
+        is_active,
+        belt_ranks:belt_level_id (
+          rank_name
+        )
+      `)
+      .order('branch_id', { ascending: true })
+      .order('first_name', { ascending: true })
+      .order('last_name', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const instructors = (data ?? []).map((row) => ({
+      id: row.id,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      branch_id: row.branch_id,
+      is_active: row.is_active,
+      belt_rank: (row.belt_ranks as { rank_name?: string | null } | null)?.rank_name ?? null,
+    }));
+
+    return res.status(200).json(instructors);
+  } catch (error) {
+    console.error('Failed to fetch active instructors:', error);
+    return res.status(500).json(errorResponse('Unable to fetch active instructors.'));
   }
 }
 
