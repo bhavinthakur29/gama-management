@@ -6,7 +6,9 @@ export type AuthContextValue = {
   token: string | null;
   user: User | null;
   userId: string | null;
+  userEmail: string | null;
   isAuthenticated: boolean;
+  isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };

@@ -4,6 +4,7 @@ import { AxiosError } from 'axios';
 import { checkInStudent, getTodayAttendance } from '../api/attendance';
 import { getStudents } from '../api/students';
 import { BeltBadge } from '../components/BeltBadge';
+import { useAuth } from '../context/auth-context';
 import type { AttendanceRecord, Student } from '../types';
 import { studentName } from '../types';
 
@@ -17,6 +18,7 @@ function getApiErrorMessage(error: unknown, fallback: string) {
 }
 
 export function Dashboard() {
+  const { userEmail } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [query, setQuery] = useState('');
@@ -115,6 +117,7 @@ export function Dashboard() {
         <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="font-serif text-4xl font-bold text-gray-950">Daily Check-In</h1>
+            <p className="mt-1 text-sm font-semibold text-gray-700">Welcome back, {userEmail ?? 'Sensei'}.</p>
             <p className="mt-2 text-gray-500">Mark students present for today&apos;s class.</p>
           </div>
           <div className="rounded-2xl bg-amber-50 px-5 py-4 text-right">

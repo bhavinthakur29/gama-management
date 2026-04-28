@@ -4,6 +4,8 @@ import { supabase } from '../api/supabaseClient';
 import { AuthContext, type AuthContextValue } from './auth-context';
 import { clearStoredAuth, getInitialAuthState } from './auth-storage';
 
+const SUPER_ADMIN_EMAIL = 'bhavinthakuruk@gmail.com';
+
 function persistSession(accessToken: string, user: User, expiresAt?: number) {
   localStorage.setItem('gama_token', accessToken);
   localStorage.setItem('gama_auth_user_id', user.id);
@@ -90,7 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token,
     user,
     userId,
+    userEmail: user?.email ?? null,
     isAuthenticated: Boolean(token && userId),
+    isSuperAdmin: (user?.email ?? '').toLowerCase() === SUPER_ADMIN_EMAIL,
     login,
     logout,
   }), [isInitialized, login, logout, token, user, userId]);

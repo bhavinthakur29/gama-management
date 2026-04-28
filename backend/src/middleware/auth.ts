@@ -115,7 +115,19 @@ function isConfiguredSuperAdminEmail(email?: string) {
   return email.trim().toLowerCase() === configuredEmail;
 }
 
-async function getProfile(profileId: string): Promise<Profile | null> {
+async function getProfile(profileId: string, email?: string): Promise<Profile | null> {
+  const configuredSuperAdminEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
+  const normalizedEmail = email?.trim().toLowerCase();
+
+  if (configuredSuperAdminEmail && normalizedEmail === configuredSuperAdminEmail) {
+    return {
+      id: profileId,
+      branch_id: "0",
+      role: "super-admin",
+      is_active: true,
+    };
+  }
+
   const { data, error } = await supabaseAdmin
     .from("instructors")
     .select("auth_id, branch_id, is_active")
@@ -177,7 +189,7 @@ export async function verifyBranch(
       return res.status(401).json(errorResponse("Invalid or expired Supabase token."));
     }
 
-    const authProfile = await getProfile(data.user.id);
+    const authProfile = await getProfile(data.user.id, data.user.email);
 
     if (!authProfile) {
       return res.status(403).json(errorResponse("Authenticated user profile was not found."));
@@ -223,7 +235,7 @@ export async function verifySuperAdmin(
       return res.status(401).json(errorResponse("Invalid or expired Supabase token."));
     }
 
-    const authProfile = await getProfile(data.user.id);
+    const authProfile = await getProfile(data.user.id, data.user.email);
     const requesterEmail = data.user.email;
     const requesterRole = authProfile?.role;
 
