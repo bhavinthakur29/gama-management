@@ -59,7 +59,7 @@ export async function getActiveInstructors(_req: Request, res: Response) {
         last_name,
         branch_id,
         is_active,
-        belt_ranks:belt_level_id (
+        belt_ranks (
           rank_name
         )
       `)
